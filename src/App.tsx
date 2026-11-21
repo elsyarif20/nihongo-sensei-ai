@@ -235,8 +235,8 @@ function Cards({ level, provider }: { level: string; provider: Provider }) {
       setCards(r.cards);
       setI(0);
       setFlip(false);
-    } catch {
-      setErr(ERR);
+    } catch (error) {
+      setErr(readableError(error));
     }
     setBusy(false);
   }
@@ -346,8 +346,8 @@ function Quiz({ level, provider }: { level: string; provider: Provider }) {
       setI(0);
       setPicked(null);
       setScore(0);
-    } catch {
-      setErr(ERR);
+    } catch (error) {
+      setErr(readableError(error));
     }
     setBusy(false);
   }
@@ -444,8 +444,8 @@ function Correct({ level, provider }: { level: string; provider: Provider }) {
     setErr('');
     try {
       setRes(await post<Fix>('/api/correct', { level, text }, provider));
-    } catch {
-      setErr(ERR);
+    } catch (error) {
+      setErr(readableError(error));
     }
     setBusy(false);
   }
