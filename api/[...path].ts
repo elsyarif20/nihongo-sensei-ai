@@ -1,8 +1,14 @@
 type Provider = 'appdeploy' | 'ollama';
 type Req = { method?: string; query: { path?: string | string[] }; body?: unknown };
 type Res = { status(code: number): Res; json(value: unknown): void; setHeader(name: string, value: string): void; end(): void };
-type Input = { level?: string; topic?: string; count?: number; text?: string; messages?: Array<{ role?: string; content?: string }>; provider?: Provider };
+type Input = { level?: string; topic?: string; count?: number; text?: string; messages?: Array<{ role?: string; content?: string }>; provider?: Provider; model?: string };
 const LEVELS = ['N5','N4','N3','N2','N1'];
+const OLLAMA_MODELS = [
+  'kimi-k3.1-pro:cloud','deepseek-v4.1-flash:cloud','deepseek-v4.1-flash:1017-cloud',
+  'glm-5.3-flash:cloud','inkling-2-small:cloud','beam:cloud','minimax-m3.1-flash:cloud',
+  'muse-spark-open:cloud','clef:cloud','clef:27b-cloud','kimi-k3:cloud',
+  'nemotron-3-ultra:cloud','mimo-v2.6-flash:cloud','mimo-v2.6-pro:cloud'
+];
 const schemas: Record<string, Record<string, unknown>> = {
   chat: {type:'object',properties:{japanese:{type:'string'},reading:{type:'string'},indonesian:{type:'string'},correction:{type:'string'}},required:['japanese','reading','indonesian','correction']},
   flashcards: {type:'object',properties:{cards:{type:'array',items:{type:'object',properties:{word:{type:'string'},reading:{type:'string'},meaning:{type:'string'},example:{type:'string'},exampleId:{type:'string'}},required:['word','reading','meaning','example','exampleId']}}},required:['cards']},
@@ -28,8 +34,10 @@ function makePrompt(route:string,b:Input): {system:string;prompt?:string;message
   return {system:'Kamu sensei yang mengoreksi kalimat bahasa Jepang murid Indonesia dengan jelas dan sabar. Penjelasan dalam bahasa Indonesia.',prompt:'Level murid JLPT '+l+'. Koreksi kalimat ini: '+text+'. Isi: isCorrect (boolean), corrected (kalimat yang benar), natural (versi lebih alami), explanation (ringkasan), points (daftar poin tata bahasa yang perlu diperhatikan).',temperature:0.7};
 }
 async function ollama(route:string,b:Input) {
-  const key=process.env.OLLAMA_API_KEY, model=process.env.OLLAMA_MODEL;
-  if(!key||!model) throw new Error('Konfigurasi Ollama Cloud belum lengkap. Isi OLLAMA_API_KEY dan OLLAMA_MODEL di Vercel.');
+  const key=process.env.OLLAMA_API_KEY;
+  const requestedModel=typeof b.model==='string'?b.model:'';
+  const model=OLLAMA_MODELS.includes(requestedModel)?requestedModel:(process.env.OLLAMA_MODEL||OLLAMA_MODELS[0]);
+  if(!key) throw new Error('Konfigurasi Ollama Cloud belum lengkap. Isi OLLAMA_API_KEY di Vercel.');
   const base=(process.env.OLLAMA_BASE_URL||'https://ollama.com/api').replace(/\/+$/,'');
   const p=makePrompt(route,b);
   const messages=[{role:'system',content:p.system},...('messages' in p&&p.messages?p.messages:p.prompt?[{role:'user',content:p.prompt}]:[])];
