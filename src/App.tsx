@@ -473,7 +473,7 @@ const TABS: { id: Tab; label: string; icon: typeof MessageCircle }[] = [
 function App() {
   const [tab, setTab] = useState<Tab>('chat');
   const [level, setLevel] = useState<string>(() => load('jp_level', 'N5'));
-  const [provider, setProvider] = useState<Provider>(() => load('jp_provider', 'appdeploy'));
+  const [provider, setProvider] = useState<Provider>(() => load<Provider>('jp_provider', 'appdeploy'));
   function changeProvider(v: Provider) { setProvider(v); save('jp_provider', v); }
 
   function changeLevel(v: string) {
