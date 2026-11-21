@@ -11,7 +11,7 @@ const schemas: Record<string, Record<string, unknown>> = {
 };
 const lvl=(v:unknown)=>typeof v==='string'&&LEVELS.includes(v)?v:'N5';
 const clamp=(v:unknown,d:number,m:number)=>Math.min(Math.max(typeof v==='number'?Math.floor(v):d,1),m);
-function makePrompt(route:string,b:Input) {
+function makePrompt(route:string,b:Input): {system:string;prompt?:string;messages?:Array<{role:string;content:string}>;temperature:number} {
   const l=lvl(b.level);
   if(route==='chat') {
     const messages=(Array.isArray(b.messages)?b.messages:[]).filter(m=>(m.role==='user'||m.role==='assistant')&&typeof m.content==='string'&&m.content.trim()).slice(-12).map(m=>({role:m.role as string,content:(m.content as string).slice(0,1000)}));
