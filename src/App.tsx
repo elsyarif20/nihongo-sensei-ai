@@ -1,5 +1,21 @@
 import { useState } from 'react';
 type Provider = 'appdeploy' | 'ollama';
+const OLLAMA_MODELS = [
+  'kimi-k3.1-pro:cloud',
+  'deepseek-v4.1-flash:cloud',
+  'deepseek-v4.1-flash:1017-cloud',
+  'glm-5.3-flash:cloud',
+  'inkling-2-small:cloud',
+  'beam:cloud',
+  'minimax-m3.1-flash:cloud',
+  'muse-spark-open:cloud',
+  'clef:cloud',
+  'clef:27b-cloud',
+  'kimi-k3:cloud',
+  'nemotron-3-ultra:cloud',
+  'mimo-v2.6-flash:cloud',
+  'mimo-v2.6-pro:cloud',
+] as const;
 import {
   MessageCircle,
   Layers,
@@ -31,7 +47,7 @@ function save(key: string, value: unknown) {
 }
 
 async function post<T>(url: string, body: unknown, provider: Provider): Promise<T> {
-  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...(body as Record<string, unknown>), provider }) });
+  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...(body as Record<string, unknown>), provider, model: load<string>('jp_ollama_model', OLLAMA_MODELS[0]) }) });
   if (!response.ok) throw new Error('AI request failed');
   return (await response.json()) as T;
 }
@@ -474,7 +490,9 @@ function App() {
   const [tab, setTab] = useState<Tab>('chat');
   const [level, setLevel] = useState<string>(() => load('jp_level', 'N5'));
   const [provider, setProvider] = useState<Provider>(() => load<Provider>('jp_provider', 'appdeploy'));
+  const [ollamaModel, setOllamaModel] = useState<string>(() => load<string>('jp_ollama_model', OLLAMA_MODELS[0]));
   function changeProvider(v: Provider) { setProvider(v); save('jp_provider', v); }
+  function changeOllamaModel(v: string) { if ((OLLAMA_MODELS as readonly string[]).includes(v)) { setOllamaModel(v); save('jp_ollama_model', v); } }
 
   function changeLevel(v: string) {
     setLevel(v);
@@ -497,6 +515,17 @@ function App() {
           <option value="appdeploy">AppDeploy AI</option>
           <option value="ollama">Ollama Cloud</option>
         </select>
+        {provider === 'ollama' && (
+          <select
+            className="max-w-[220px] rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
+            value={ollamaModel}
+            onChange={e => changeOllamaModel(e.target.value)}
+            aria-label="Model Ollama Cloud"
+            title="Pilih model Ollama Cloud"
+          >
+            {OLLAMA_MODELS.map(model => <option key={model} value={model}>{model}</option>)}
+          </select>
+        )}
         <select
           className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
           value={level}
