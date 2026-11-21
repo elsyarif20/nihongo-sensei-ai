@@ -41,11 +41,24 @@ async function ollama(route:string,b:Input) {
   const base=(process.env.OLLAMA_BASE_URL||'https://ollama.com/api').replace(/\/+$/,'');
   const p=makePrompt(route,b);
   const messages=[{role:'system',content:p.system},...('messages' in p&&p.messages?p.messages:p.prompt?[{role:'user',content:p.prompt}]:[])];
-  const response=await fetch(base+'/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages,stream:false,format:schemas[route],options:{temperature:p.temperature}})});
-  if(!response.ok) throw new Error('Ollama Cloud menolak permintaan (HTTP '+response.status+'). Periksa API Key, model, dan kuota.');
-  const result=await response.json() as {message?:{content?:string}};
+  let response: Response;
+  try {
+    response=await fetch(base+'/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages,stream:false,format:schemas[route],options:{temperature:p.temperature}})});
+  } catch {
+    throw new Error('Tidak dapat terhubung ke Ollama Cloud. Periksa koneksi server atau OLLAMA_BASE_URL.');
+  }
+  const raw=await response.text();
+  let payload: any; try { payload=raw?JSON.parse(raw):{}; } catch { payload={}; }
+  if(!response.ok) {
+    const detail=typeof payload?.error==='string'?payload.error:'';
+    if(response.status===401||response.status===403) throw new Error('API Key Ollama tidak valid atau tidak memiliki akses. Periksa OLLAMA_API_KEY di Vercel. '+detail);
+    if(response.status===404) throw new Error('Model atau endpoint Ollama tidak ditemukan. Periksa nama model yang dipilih. '+detail);
+    if(response.status===429) throw new Error('Batas penggunaan atau kuota Ollama Cloud tercapai. Coba lagi nanti atau periksa akun Ollama. '+detail);
+    throw new Error('Ollama Cloud menolak permintaan (HTTP '+response.status+'). '+detail);
+  }
+  const result=payload as {message?:{content?:string}};
   if(!result.message?.content) throw new Error('Ollama Cloud mengembalikan respons kosong.');
-  return JSON.parse(result.message.content);
+  try { return JSON.parse(result.message.content); } catch { throw new Error('Respons Ollama bukan JSON yang sesuai. Coba model lain atau periksa dukungan structured output model tersebut.'); }
 }
 async function appdeploy(route:string,body:Input) {
   const base=(process.env.APPDEPLOY_BACKEND_URL||'https://nihongo-sensei-ai-rb0lxt.v2.appdeploy.ai').replace(/\/+$/,'');
