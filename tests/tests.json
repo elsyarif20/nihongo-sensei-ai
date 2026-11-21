@@ -1,0 +1,85 @@
+[
+  {
+    "name": "Chat with the AI tutor",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": [
+      "AI tutor conversation",
+      "POST /api/chat",
+      "reading and translation display"
+    ],
+    "description": "Verifies the user can send a Japanese message and receive a tutor reply with reading and Indonesian translation.",
+    "steps": [
+      "Open the Tutor tab",
+      "Type a Japanese greeting in the message box",
+      "Press the send button"
+    ],
+    "expected": "The user message appears and a tutor reply in Japanese appears below it with an Indonesian translation."
+  },
+  {
+    "name": "Generate and flip flashcards",
+    "viewport": "desktop",
+    "covers": [
+      "vocabulary flashcards",
+      "POST /api/flashcards",
+      "card flip and review marking"
+    ],
+    "description": "Verifies flashcards can be generated for a topic, flipped, and marked as memorized.",
+    "steps": [
+      "Open the Kartu tab",
+      "Enter the topic makanan",
+      "Press Buat kartu",
+      "Tap the card to flip it",
+      "Press Hafal"
+    ],
+    "expected": "A card shows a Japanese word, flips to show its reading and meaning, and the next card (Kartu 2 dari 8) is shown after pressing Hafal."
+  },
+  {
+    "name": "Take a JLPT quiz",
+    "viewport": "desktop",
+    "covers": [
+      "JLPT quiz",
+      "POST /api/quiz",
+      "answer feedback and explanation"
+    ],
+    "description": "Verifies a quiz can be started and answering shows feedback with an explanation.",
+    "steps": [
+      "Open the Kuis tab",
+      "Press Mulai kuis",
+      "Choose any answer option"
+    ],
+    "expected": "Answer options are highlighted as correct or wrong and an explanation with a next-question button is visible."
+  },
+  {
+    "name": "Correct a Japanese sentence",
+    "viewport": "desktop",
+    "covers": [
+      "sentence correction",
+      "POST /api/correct",
+      "grammar explanation"
+    ],
+    "description": "Verifies a sentence can be corrected with a grammar explanation.",
+    "steps": [
+      "Open the Koreksi tab",
+      "Type a Japanese sentence into the text area",
+      "Press Koreksi"
+    ],
+    "expected": "A corrected sentence, a more natural version, and grammar points in Indonesian are displayed."
+  },
+  {
+    "name": "Reject empty sentence correction",
+    "viewport": "mobile",
+    "covers": [
+      "empty input validation",
+      "invalid-request guardrail",
+      "mobile layout"
+    ],
+    "description": "Verifies an empty correction request is blocked with a visible message.",
+    "steps": [
+      "Open the Koreksi tab",
+      "Leave the text area empty",
+      "Press Koreksi"
+    ],
+    "expected": "A message asking to write a Japanese sentence first is visible and no result card is shown."
+  }
+]
