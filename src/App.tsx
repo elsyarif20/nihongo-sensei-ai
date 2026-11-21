@@ -28,6 +28,9 @@ import {
 type Tab = 'chat' | 'cards' | 'quiz' | 'fix';
 const LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
 const ERR = 'Terjadi kesalahan. Silakan coba lagi.';
+function readableError(error: unknown): string {
+  return error instanceof Error && error.message ? error.message : ERR;
+}
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -48,8 +51,14 @@ function save(key: string, value: unknown) {
 
 async function post<T>(url: string, body: unknown, provider: Provider): Promise<T> {
   const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...(body as Record<string, unknown>), provider, model: load<string>('jp_ollama_model', OLLAMA_MODELS[0]) }) });
-  if (!response.ok) throw new Error('AI request failed');
-  return (await response.json()) as T;
+  const raw = await response.text();
+  let data: any;
+  try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+  if (!response.ok) {
+    const detail = typeof data?.error === 'string' ? data.error : `Permintaan AI gagal (HTTP ${response.status}).`;
+    throw new Error(detail);
+  }
+  return data as T;
 }
 
 function Spinner() {
@@ -110,8 +119,8 @@ function Chat({ level, provider }: { level: string; provider: Provider }) {
           correction: r.correction,
         },
       ]);
-    } catch {
-      setErr(ERR);
+    } catch (error) {
+      setErr(readableError(error));
     }
     setBusy(false);
   }
@@ -146,7 +155,7 @@ function Chat({ level, provider }: { level: string; provider: Provider }) {
           >
             <div
               className={
-                'max-w-[85%] rounded-2xl px-4 py-3 ' +
+                'max-w-[92%] break-words rounded-2xl px-4 py-3 sm:max-w-[85%] lg:max-w-[70%] ' +
                 (m.role === 'user'
                   ? 'bg-rose-600 text-white'
                   : 'border border-stone-200 bg-white')
@@ -500,14 +509,14 @@ function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 p-4">
+    <div className="flex min-h-dvh w-full flex-col">
+      <header className="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <h1 className="text-xl font-bold">
           日本語 <span className="text-rose-600">Sensei AI</span>
         </h1>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 lg:flex lg:w-auto lg:flex-wrap">
         <select
-          className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
+          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm lg:w-auto"
           value={provider}
           onChange={e => changeProvider(e.target.value as Provider)}
           aria-label="Mesin AI"
@@ -517,7 +526,7 @@ function App() {
         </select>
         {provider === 'ollama' && (
           <select
-            className="max-w-[220px] rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
+            className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-2 py-2 text-sm lg:w-auto lg:max-w-[280px]"
             value={ollamaModel}
             onChange={e => changeOllamaModel(e.target.value)}
             aria-label="Model Ollama Cloud"
@@ -540,7 +549,7 @@ function App() {
         </select>
         </div>
       </header>
-      <nav className="grid grid-cols-4 gap-2 px-4">
+      <nav className="mx-auto grid w-full max-w-screen-2xl grid-cols-4 gap-2 px-4 sm:px-6 lg:px-8">
         {TABS.map(t => {
           const Icon = t.icon;
           return (
@@ -560,7 +569,7 @@ function App() {
           );
         })}
       </nav>
-      <main className="flex-1 p-4">
+      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-4 sm:px-6 lg:px-8">
         {tab === 'chat' && <Chat level={level} provider={provider} />}
         {tab === 'cards' && <Cards level={level} provider={provider} />}
         {tab === 'quiz' && <Quiz level={level} provider={provider} />}
