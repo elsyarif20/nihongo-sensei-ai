@@ -84,3 +84,9 @@ export default async function handler(req:Req,res:Res):Promise<void> {
     res.status(status).json({error:message});
   }
 }
+
+export default async function handler(req: Req, res: Res): Promise<void> {
+  const raw = req.query.path;
+  const route = Array.isArray(raw) ? raw.join('/') : raw;
+  return handleRoute(route, req, res);
+}
