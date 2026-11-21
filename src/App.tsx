@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '@appdeploy/client';
+type Provider = 'appdeploy' | 'ollama';
 import {
   MessageCircle,
   Layers,
@@ -30,9 +30,10 @@ function save(key: string, value: unknown) {
   }
 }
 
-async function post<T>(url: string, body: unknown): Promise<T> {
-  const { data } = await api.post(url, body);
-  return data as T;
+async function post<T>(url: string, body: unknown, provider: Provider): Promise<T> {
+  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...(body as Record<string, unknown>), provider }) });
+  if (!response.ok) throw new Error('AI request failed');
+  return (await response.json()) as T;
 }
 
 function Spinner() {
@@ -59,7 +60,7 @@ interface Msg {
   correction?: string;
 }
 
-function Chat({ level }: { level: string }) {
+function Chat({ level, provider }: { level: string; provider: Provider }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -82,7 +83,7 @@ function Chat({ level }: { level: string }) {
       }>('/api/chat', {
         level,
         messages: next.map(m => ({ role: m.role, content: m.content })),
-      });
+      }, provider);
       setMsgs([
         ...next,
         {
@@ -186,7 +187,7 @@ interface FlashCard {
   exampleId: string;
 }
 
-function Cards({ level }: { level: string }) {
+function Cards({ level, provider }: { level: string; provider: Provider }) {
   const [topic, setTopic] = useState('');
   const [cards, setCards] = useState<FlashCard[]>([]);
   const [i, setI] = useState(0);
@@ -205,7 +206,7 @@ function Cards({ level }: { level: string }) {
         level,
         topic,
         count: 8,
-      });
+      }, provider);
       setCards(r.cards);
       setI(0);
       setFlip(false);
@@ -299,7 +300,7 @@ interface Question {
   explanation: string;
 }
 
-function Quiz({ level }: { level: string }) {
+function Quiz({ level, provider }: { level: string; provider: Provider }) {
   const [qs, setQs] = useState<Question[]>([]);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
@@ -315,7 +316,7 @@ function Quiz({ level }: { level: string }) {
       const r = await post<{ questions: Question[] }>('/api/quiz', {
         level,
         count: 5,
-      });
+      }, provider);
       setQs(r.questions);
       setI(0);
       setPicked(null);
@@ -403,7 +404,7 @@ interface Fix {
   points: string[];
 }
 
-function Correct({ level }: { level: string }) {
+function Correct({ level, provider }: { level: string; provider: Provider }) {
   const [text, setText] = useState('');
   const [res, setRes] = useState<Fix | null>(null);
   const [busy, setBusy] = useState(false);
@@ -417,7 +418,7 @@ function Correct({ level }: { level: string }) {
     setBusy(true);
     setErr('');
     try {
-      setRes(await post<Fix>('/api/correct', { level, text }));
+      setRes(await post<Fix>('/api/correct', { level, text }, provider));
     } catch {
       setErr(ERR);
     }
@@ -472,6 +473,8 @@ const TABS: { id: Tab; label: string; icon: typeof MessageCircle }[] = [
 function App() {
   const [tab, setTab] = useState<Tab>('chat');
   const [level, setLevel] = useState<string>(() => load('jp_level', 'N5'));
+  const [provider, setProvider] = useState<Provider>(() => load('jp_provider', 'appdeploy'));
+  function changeProvider(v: Provider) { setProvider(v); save('jp_provider', v); }
 
   function changeLevel(v: string) {
     setLevel(v);
@@ -480,10 +483,20 @@ function App() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col">
-      <header className="flex items-center justify-between p-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 p-4">
         <h1 className="text-xl font-bold">
           日本語 <span className="text-rose-600">Sensei AI</span>
         </h1>
+        <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
+          value={provider}
+          onChange={e => changeProvider(e.target.value as Provider)}
+          aria-label="Mesin AI"
+        >
+          <option value="appdeploy">AppDeploy AI</option>
+          <option value="ollama">Ollama Cloud</option>
+        </select>
         <select
           className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm"
           value={level}
@@ -496,6 +509,7 @@ function App() {
             </option>
           ))}
         </select>
+        </div>
       </header>
       <nav className="grid grid-cols-4 gap-2 px-4">
         {TABS.map(t => {
@@ -518,10 +532,10 @@ function App() {
         })}
       </nav>
       <main className="flex-1 p-4">
-        {tab === 'chat' && <Chat level={level} />}
-        {tab === 'cards' && <Cards level={level} />}
-        {tab === 'quiz' && <Quiz level={level} />}
-        {tab === 'fix' && <Correct level={level} />}
+        {tab === 'chat' && <Chat level={level} provider={provider} />}
+        {tab === 'cards' && <Cards level={level} provider={provider} />}
+        {tab === 'quiz' && <Quiz level={level} provider={provider} />}
+        {tab === 'fix' && <Correct level={level} provider={provider} />}
       </main>
     </div>
   );
