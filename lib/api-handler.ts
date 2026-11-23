@@ -53,6 +53,8 @@ async function ollama(route:string,b:Input) {
     const detail=typeof payload?.error==='string'?payload.error:'';
     if(response.status===401||response.status===403) throw new Error('API Key Ollama tidak valid atau tidak memiliki akses. Periksa OLLAMA_API_KEY di Vercel. '+detail);
     if(response.status===404) throw new Error('Model atau endpoint Ollama tidak ditemukan. Periksa nama model yang dipilih. '+detail);
+    if(response.status===402) throw new Error('Akun Ollama Cloud memerlukan paket atau kredit penggunaan untuk model ini (HTTP 402). '+detail);
+    if(response.status===413) throw new Error('Permintaan terlalu besar untuk batas model Ollama Cloud (HTTP 413). '+detail);
     if(response.status===429) throw new Error('Batas penggunaan atau kuota Ollama Cloud tercapai. Coba lagi nanti atau periksa akun Ollama. '+detail);
     throw new Error('Ollama Cloud menolak permintaan (HTTP '+response.status+'). '+detail);
   }
